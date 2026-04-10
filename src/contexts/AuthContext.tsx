@@ -64,9 +64,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (input.role !== "organization") return;
     if (!input.organizationName?.trim()) return;
 
-    // Ensure we only attempt once per app session for a given user.
+    // Skip if already successfully bootstrapped this session.
     if (didBootstrapOrgForUserRef.current === input.userId) return;
-    didBootstrapOrgForUserRef.current = input.userId;
 
     try {
       await organizationsApi.setupOrganizationForUser({
@@ -75,8 +74,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         borough: input.borough ?? "Manhattan",
         email: input.email,
       });
+      // Only mark as done after a successful creation so a transient failure
+      // does not permanently block the org from being created.
+      didBootstrapOrgForUserRef.current = input.userId;
     } catch {
-      // Non-blocking
+      // Non-blocking — will be retried on the next auth state change.
     }
   };
 

@@ -18,7 +18,8 @@ export function LoginModal({ isOpen, onClose, role, initialSignUp = false }: Log
     email: '',
     password: '',
     name: '',
-    organization: ''
+    organization: '',
+    borough: 'Manhattan',
   });
 
   const { signIn, signUp, isSubmitting } = useAuth();
@@ -26,7 +27,7 @@ export function LoginModal({ isOpen, onClose, role, initialSignUp = false }: Log
 
   const handleRoleSwitch = (newRole: 'community_member' | 'organization') => {
     setCurrentRole(newRole);
-    setFormData({ email: '', password: '', name: '', organization: '' });
+    setFormData({ email: '', password: '', name: '', organization: '', borough: 'Manhattan' });
     setErrorMessage(null);
     setSuccessMessage(null);
   };
@@ -43,9 +44,20 @@ export function LoginModal({ isOpen, onClose, role, initialSignUp = false }: Log
 
     const email = formData.email.trim();
     const password = formData.password;
+    const orgName = formData.organization.trim();
 
     if (!email || !password) {
       setErrorMessage('Email and password are required.');
+      return;
+    }
+
+    if (isSignUp && password.length < 8) {
+      setErrorMessage('Password must be at least 8 characters.');
+      return;
+    }
+
+    if (isSignUp && currentRole === 'organization' && !orgName) {
+      setErrorMessage('Organization name is required.');
       return;
     }
 
@@ -56,9 +68,10 @@ export function LoginModal({ isOpen, onClose, role, initialSignUp = false }: Log
           password,
           name: formData.name.trim() || undefined,
           role: currentRole,
-          organization: currentRole === 'organization' ? (formData.organization.trim() || undefined) : undefined
+          organization: currentRole === 'organization' ? orgName : undefined,
+          borough: currentRole === 'organization' ? formData.borough : undefined,
         });
-        setSuccessMessage('Please check your email.');
+        setSuccessMessage('Account created! Please check your email to verify, then sign in.');
       } else {
         await signIn({ email, password, expectedRole: currentRole });
         onClose();
@@ -175,16 +188,30 @@ export function LoginModal({ isOpen, onClose, role, initialSignUp = false }: Log
             </div>
 
             {isSignUp && currentRole === 'organization' && (
-              <div>
-                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">Organization Name</label>
-                <input
-                  type="text"
-                  value={formData.organization}
-                  onChange={(e) => setFormData({...formData, organization: e.target.value})}
-                  className="w-full px-4 h-12 border border-gray-200 rounded-2xl text-[14px] focus:border-teal-600 focus:ring-4 focus:ring-teal-50 outline-none transition-all placeholder-gray-400 font-bold"
-                  placeholder="Your Organization"
-                />
-              </div>
+              <>
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">Organization Name <span className="text-red-400">*</span></label>
+                  <input
+                    type="text"
+                    value={formData.organization}
+                    onChange={(e) => setFormData({...formData, organization: e.target.value})}
+                    className="w-full px-4 h-12 border border-gray-200 rounded-2xl text-[14px] focus:border-teal-600 focus:ring-4 focus:ring-teal-50 outline-none transition-all placeholder-gray-400 font-bold"
+                    placeholder="Your Organization"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2.5">Borough</label>
+                  <select
+                    value={formData.borough}
+                    onChange={(e) => setFormData({...formData, borough: e.target.value})}
+                    className="w-full px-4 h-12 border border-gray-200 rounded-2xl text-[14px] focus:border-teal-600 focus:ring-4 focus:ring-teal-50 outline-none transition-all font-bold bg-white"
+                  >
+                    {['Manhattan', 'Brooklyn', 'Queens', 'Bronx', 'Staten Island'].map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
             )}
 
             {(errorMessage || successMessage) && (
