@@ -1,0 +1,99 @@
+{
+  "emergency": {
+    "title": "Emergency Contacts",
+    "lastUpdated": "2025-01-21T00:00:00Z",
+    "contacts": [
+      {
+        "id": "911",
+        "name": "Emergency Services",
+        "phone": "911",
+        "type": "emergency",
+        "description": "Police, Fire, Medical Emergency",
+        "available24h": true
+      },
+      {
+        "id": "988",
+        "name": "Suicide & Crisis Lifeline",
+        "phone": "988",
+        "type": "crisis",
+        "description": "Free and confidential emotional support",
+        "available24h": true
+      },
+      {
+        "id": "211",
+        "name": "2-1-1 Information & Referral",
+        "phone": "211",
+        "type": "information",
+        "description": "Health and human services information",
+        "available24h": true
+      }
+    ]
+  },
+  "shelters": [
+    {
+      "id": "shelter-1",
+      "name": "Downtown Emergency Shelter",
+      "phone": "(555) 911-1111",
+      "address": "123 Main St, Downtown",
+      "type": "shelter",
+      "available24h": true,
+      "description": "Emergency overnight shelter with intake services",
+      "capacity": "50 beds",
+      "services": ["meals", "case_management", "clothing"]
+    },
+    {
+      "id": "shelter-2",
+      "name": "Family Crisis Center",
+      "phone": "(555) 911-2222",
+      "address": "456 Oak Ave, Midtown",
+      "type": "shelter",
+      "available24h": true,
+      "description": "Family-focused emergency housing",
+      "capacity": "25 families",
+      "services": ["childcare", "counseling", "job_assistance"]
+    }
+  ],
+  "food": [
+    {
+      "id": "food-1",
+      "name": "Emergency Food Bank",
+      "phone": "(555) 911-3333",
+      "address": "789 Pine St, Central",
+      "type": "food",
+      "available24h": false,
+      "hours": "Daily 9AM-4PM",
+      "description": "Emergency food assistance and hot meals",
+      "services": ["food_pantry", "hot_meals", "nutrition_education"]
+    },
+    {
+      "id": "food-2",
+      "name": "24/7 Community Kitchen",
+      "phone": "(555) 911-4444",
+      "address": "321 Elm Dr, Westside",
+      "type": "food",
+      "available24h": true,
+      "description": "Round-the-clock meal service",
+      "services": ["hot_meals", "takeaway", "delivery"]
+    }
+  ],
+  "healthcare": [
+    {
+      "id": "health-1",
+      "name": "Emergency Medical Services",
+      "phone": "911",
+      "type": "medical",
+      "available24h": true,
+      "description": "Life-threatening medical emergencies"
+    },
+    {
+      "id": "health-2",
+      "name": "Crisis Mental Health",
+      "phone": "(555) 911-5555",
+      "address": "654 Cedar Ln, Northside",
+      "type": "mental_health",
+      "available24h": true,
+      "description": "Mental health crisis intervention",
+      "services": ["crisis_counseling", "psychiatric_evaluation", "safety_planning"]
+    }
+  ]
+}

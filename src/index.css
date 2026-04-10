@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono&family=Merriweather:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    overflow-x: hidden;
+    max-width: 100%;
+    font-family: 'Inter', sans-serif;
+    scroll-behavior: smooth;
+  }
+  
+  *, *::before, *::after {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  img, svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Leaflet tiles/markers use absolutely positioned imgs; global img rules break alignment */
+  .leaflet-container img {
+    max-width: none !important;
+  }
+
+  input, select, textarea {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}
+
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
