@@ -30,8 +30,6 @@ export default function StaffAuthPage() {
         const { data, error: orgError } = await supabase
           .from('organizations')
           .select('id, name, borough')
-          .eq('status', 'approved')
-          .eq('is_active', true)
           .order('name', { ascending: true });
         if (orgError) throw orgError;
         if (!active) return;
@@ -72,7 +70,8 @@ export default function StaffAuthPage() {
         setError('Please select an organization.');
         return;
       }
-      const normalizedUsername = username.trim().toLowerCase();
+      // Accept either "jai_kumar" or the full login email "jai_kumar@alpha-hive.healthpowr.app"
+      const normalizedUsername = username.trim().toLowerCase().replace(/@.*$/, '');
 
       // Resolve username -> staff's REAL auth email via org membership.
       const { data: memberRow, error: memberErr } = await supabase
@@ -155,10 +154,13 @@ export default function StaffAuthPage() {
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="e.g. jai"
+              placeholder="Your username (e.g. jai_kumar)"
+              autoCapitalize="none"
+              autoCorrect="off"
               className="w-full h-11 border border-gray-200 rounded-lg pl-10 pr-3 text-sm"
             />
           </div>
+          <p className="text-xs text-gray-400 mt-1">Enter your username or your full login email — either works.</p>
         </div>
 
         <div>
