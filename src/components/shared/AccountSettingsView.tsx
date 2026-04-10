@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Camera, CheckCircle, Eye, EyeOff, KeyRound, Lock, Mail,
   MapPin, Phone, Save, User as UserIcon, X,
@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function AccountSettingsView({ hideBorough = false }: Props) {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Avatar state ──────────────────────────────────────────────────────────
@@ -33,6 +33,17 @@ export function AccountSettingsView({ hideBorough = false }: Props) {
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [profileErrors, setProfileErrors] = useState<Record<string, string>>({});
+
+  // Sync form when profile loads from context (handles race condition where
+  // the form mounts before the async profile fetch completes)
+  useEffect(() => {
+    setProfileForm({
+      name: profile?.full_name || user?.name || '',
+      phone: profile?.phone || '',
+      borough: profile?.borough || '',
+    });
+    if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
+  }, [profile?.full_name, profile?.phone, profile?.borough, profile?.avatar_url, user?.name]);
 
   // ── Password state ────────────────────────────────────────────────────────
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
@@ -92,6 +103,7 @@ export function AccountSettingsView({ hideBorough = false }: Props) {
       setAvatarUrl(publicUrl);
       setAvatarPreview(null);
       setAvatarFile(null);
+      await refreshProfile();
       setAvatarMsg({ ok: true, text: 'Profile photo updated.' });
     } catch (err: any) {
       setAvatarMsg({ ok: false, text: err?.message || 'Failed to upload photo.' });
@@ -124,6 +136,8 @@ export function AccountSettingsView({ hideBorough = false }: Props) {
       if (!hideBorough) update.borough = profileForm.borough || null;
       const { error } = await supabase.from('profiles').update(update).eq('id', user.id);
       if (error) throw error;
+      // Refresh the auth context so the header/avatar reflect the new values immediately
+      await refreshProfile();
       setProfileMsg({ ok: true, text: 'Profile saved.' });
     } catch (err: any) {
       setProfileMsg({ ok: false, text: err?.message || 'Failed to save.' });

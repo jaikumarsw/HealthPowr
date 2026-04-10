@@ -40,6 +40,7 @@ interface AuthContextType {
     borough?: string;
   }) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
   isLoading: boolean;
   isSubmitting: boolean;
 }
@@ -410,6 +411,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const refreshProfile: AuthContextType["refreshProfile"] = async () => {
+    const { data } = await supabase.auth.getSession();
+    const supaUser = data.session?.user ?? null;
+    if (!supaUser) return;
+    const profileData = await fetchProfile(supaUser.id);
+    const mapped = mapSupabaseUserToAppUser(supaUser);
+    applyResolvedIdentity(mapped, profileData);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -419,6 +429,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signIn,
         signUp,
         signOut,
+        refreshProfile,
         isLoading,
         isSubmitting,
       }}
