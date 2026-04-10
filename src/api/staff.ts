@@ -9,61 +9,51 @@ export const staffApi = {
     fullName?: string;
     membershipRole: "admin" | "member";
   }): Promise<{ login_email: string; invited_email: string }> {
-    // Ensure the Edge Function receives an auth JWT.
-    // In some environments, `functions.invoke` may not attach it reliably.
-    const { data: sessionData, error: sessionError } =
-      await supabase.auth.getSession();
-    if (sessionError) {
-      throw new Error(sessionError.message || "Failed to read session.");
-    }
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) {
-      throw new Error("You must be signed in to create staff accounts.");
+    // Force a token refresh so the JWT sent to the Edge Function is always fresh.
+    // getSession() can return a cached (expired) token; refreshSession() guarantees a new one.
+    const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
+    if (refreshErr || !refreshed.session) {
+      throw new Error(
+        refreshErr?.message || "Session expired — please sign in again."
+      );
     }
 
-    // Use fetch() so we can read the response body (Supabase SDK exposes it as a stream).
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-    if (!supabaseUrl || !anonKey) {
-      throw new Error("Missing Supabase env vars (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY).");
-    }
+    // Use the Supabase SDK's functions.invoke() which attaches the fresh JWT automatically.
+    const { data, error } = await supabase.functions.invoke<{
+      login_email: string;
+      invited_email: string;
+    }>("create-staff-account", { body: input });
 
-    const res = await fetch(`${supabaseUrl}/functions/v1/create-staff-account`, {
-      method: "POST",
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(input),
-    });
+    if (error) {
+      console.error("[create-staff-account] error", error);
 
-    const text = await res.text();
-    const maybeJson = (() => {
+      // The SDK wraps the response body in error.message or error.context.
+      // Try to extract a human-readable message from the JSON body.
+      let msg = error.message || "Failed to create staff account.";
       try {
-        return JSON.parse(text);
+        const ctx = (error as any).context;
+        if (ctx && typeof ctx.json === "function") {
+          const body = await ctx.json();
+          if (body?.error) msg = body.error;
+          else if (body?.message) msg = body.message;
+        }
       } catch {
-        return null;
+        // ignore — use msg as-is
       }
-    })();
 
-    if (!res.ok) {
-      console.error("[create-staff-account] error", {
-        status: res.status,
-        body: maybeJson ?? text,
-      });
-      if (res.status === 404) {
+      if (msg.toLowerCase().includes("not_found") || msg.toLowerCase().includes("404")) {
         throw new Error(
-          "Staff account creation is not available yet — the server function has not been deployed. Contact your system administrator."
+          "Staff account creation is unavailable — the server function is not deployed. Contact your system administrator."
         );
       }
-      const msg =
-        (maybeJson && (maybeJson.error || maybeJson.message)) ||
-        `Edge Function failed (${res.status}).`;
+
       throw new Error(String(msg));
     }
 
-    return (maybeJson ?? {}) as { login_email: string; invited_email: string };
+    if (!data?.login_email) {
+      throw new Error("Unexpected response from server. Please try again.");
+    }
+
+    return data;
   },
 };
-
