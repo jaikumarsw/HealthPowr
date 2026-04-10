@@ -32,3 +32,10 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[userenv]
+
+[userenv.shared]
+VITE_SUPABASE_URL = "https://lswmgcjwoxpvvrymtpjp.supabase.co"
+VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxzd21nY2p3b3hwdnZyeW10cGpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MDQwNTEsImV4cCI6MjA5MTM4MDA1MX0.HmGeKi0FutOxH3pMaDOwTgPWlVQL6IDJIdHIjfW1C2E"
+VITE_SITE_URL = "https://c6a5c25d-d516-480c-9173-b14f914644a5-00-2t3v38gcgum4s.picard.replit.dev"
