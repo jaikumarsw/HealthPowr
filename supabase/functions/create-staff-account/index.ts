@@ -148,10 +148,12 @@ Deno.serve(async (req) => {
   const loginEmail = toStaffLoginEmail(username, orgName);
   const tempPassword = generateTempPassword();
 
-  // Create the user directly (no invite email — avoids rate limits entirely).
-  // email_confirm: true so the account is immediately active.
+  // Create the auth user with the LOGIN email as the primary auth email.
+  // This means staff sign in directly with their login email — no DB lookup needed.
+  // The personal email is stored in metadata for recovery purposes.
+  // email_confirm: true so the account is immediately active (no email sent).
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
-    email: personalEmail,
+    email: loginEmail,
     password: tempPassword,
     email_confirm: true,
     user_metadata: {
@@ -160,6 +162,7 @@ Deno.serve(async (req) => {
       created_by_org: payload.organizationId,
       staff_username: username,
       staff_login_email: loginEmail,
+      personal_email: personalEmail,
     },
   });
 
@@ -170,7 +173,7 @@ Deno.serve(async (req) => {
 
   const staffId = created.user.id;
 
-  // Upsert profile
+  // Upsert profile — store personal email so it's visible in the team table
   const { error: profileErr } = await admin.from("profiles").upsert({
     id: staffId,
     email: personalEmail,
