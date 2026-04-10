@@ -1,24 +1,41 @@
-import { useState } from 'react';
-import { 
+import {
   Building2, FileText, BarChart3, LogOut, Bell, Menu, ShieldCheck, Download, X
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { RequestsListView } from './RequestsListView';
 import { OrganizationsListView } from './OrganizationsListView';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { requestsApi } from '../../api/requests';
+
+type AdminTab = 'requests' | 'orgs' | 'reports';
+const ALL_TABS: AdminTab[] = ['requests', 'orgs', 'reports'];
+
+function tabFromPath(pathname: string): AdminTab | null {
+  const seg = pathname.replace(/^\/admin\/?/, '').split('/')[0] as AdminTab;
+  return ALL_TABS.includes(seg) ? seg : null;
+}
 
 export function AdminDashboard() {
   const { user, signOut } = useAuth();
-  const [activeTab, setActiveTab] = useState('requests');
-  // Mobile: start closed. Desktop (lg+): always open via media query effect below.
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [counts, setCounts] = useState<Record<string, number>>({});
 
+  const activeTab: AdminTab = tabFromPath(pathname) ?? 'requests';
+
+  // Redirect bare /admin to /admin/requests
+  useEffect(() => {
+    if (!tabFromPath(pathname)) {
+      navigate('/admin/requests', { replace: true });
+    }
+  }, [pathname, navigate]);
+
   const menuItems = [
-    { id: 'requests', label: 'All Requests', icon: FileText },
-    { id: 'orgs', label: 'Organizations', icon: Building2 },
-    { id: 'reports', label: 'Reports', icon: BarChart3 },
+    { id: 'requests' as AdminTab, label: 'All Requests', icon: FileText },
+    { id: 'orgs' as AdminTab, label: 'Organizations', icon: Building2 },
+    { id: 'reports' as AdminTab, label: 'Reports', icon: BarChart3 },
   ];
 
   useEffect(() => {
@@ -29,16 +46,13 @@ export function AdminDashboard() {
   // Keep sidebar responsive: closed on small screens, pinned open on lg+.
   useEffect(() => {
     if (typeof window === 'undefined') return;
-
     const mql = window.matchMedia('(min-width: 1024px)');
     const update = () => setSidebarOpen(mql.matches);
     update();
-
     if (typeof mql.addEventListener === 'function') {
       mql.addEventListener('change', update);
       return () => mql.removeEventListener('change', update);
     }
-
     // Safari fallback
     // eslint-disable-next-line deprecation/deprecation
     mql.addListener(update);
@@ -46,14 +60,18 @@ export function AdminDashboard() {
     return () => mql.removeListener(update);
   }, []);
 
+  const handleNav = (tab: AdminTab) => {
+    navigate(`/admin/${tab}`);
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  };
+
   const handleReportsExport = async () => {
     const data = await requestsApi.exportCsv();
     const headers = ['ID', 'Category', 'Borough', 'Status', 'Member', 'Organization', 'Created At'];
     const rows = data.map((r: any) => [
-      r.id,
-      r.category,
-      r.borough,
-      r.status,
+      r.id, r.category, r.borough, r.status,
       r.member?.[0]?.full_name || '',
       r.organization?.[0]?.name || '',
       new Date(r.created_at).toLocaleDateString()
@@ -105,17 +123,11 @@ export function AdminDashboard() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    // Close drawer after navigating on mobile.
-                    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-                      setSidebarOpen(false);
-                    }
-                  }}
+                  onClick={() => handleNav(item.id)}
                   className={`
                     w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all uppercase tracking-tight font-bold text-[13px]
-                    ${activeTab === item.id 
-                      ? 'bg-teal-600 text-white shadow-lg shadow-teal-900/20' 
+                    ${activeTab === item.id
+                      ? 'bg-teal-600 text-white shadow-lg shadow-teal-900/20'
                       : 'text-gray-400 hover:text-white hover:bg-gray-800'}
                   `}
                 >
@@ -128,7 +140,7 @@ export function AdminDashboard() {
 
           <div className="p-4 border-t border-gray-800">
             <button
-              onClick={() => signOut()}
+              onClick={() => void signOut()}
               className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-xl transition-all uppercase tracking-tight font-bold text-[13px]"
             >
               <LogOut className="w-5 h-5" />
@@ -143,7 +155,7 @@ export function AdminDashboard() {
         {/* Header */}
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-40 shadow-sm">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={() => setSidebarOpen(!isSidebarOpen)}
               className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
             >

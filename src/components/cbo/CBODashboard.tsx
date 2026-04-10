@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { CBOHeader } from './CBOHeader';
 import { CBOSidebar } from './CBOSidebar';
 import { CBOOverview } from './CBOOverview';
@@ -9,10 +8,10 @@ import { SettingsView } from './SettingsView';
 import { HelpSupportView } from './HelpSupportView';
 import { AccountSettingsView } from '../shared/AccountSettingsView';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { requestsApi } from '../../api/requests';
 import { organizationsApi } from '../../lib/organzationsApi';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export type CBOView =
   | 'overview'
@@ -24,10 +23,18 @@ export type CBOView =
   | 'help'
   | 'account';
 
+const ALL_VIEWS: CBOView[] = ['overview', 'clients', 'assigned', 'services', 'messages', 'settings', 'help', 'account'];
+const STAFF_VIEWS: CBOView[] = ['assigned', 'messages', 'help', 'account'];
+
+function viewFromPath(pathname: string): CBOView | null {
+  const seg = pathname.replace(/^\/cbo\/?/, '').split('/')[0] as CBOView;
+  return ALL_VIEWS.includes(seg) ? seg : null;
+}
+
 export function CBODashboard() {
   const { user, signOut, isLoading } = useAuth();
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState<CBOView>('overview');
+  const { pathname } = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [membershipRole, setMembershipRole] = useState<'owner' | 'admin' | 'member' | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
@@ -35,6 +42,9 @@ export function CBODashboard() {
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const bootstrapAttempted = useRef(false);
   const isRestrictedRole = membershipRole === 'member' || membershipRole === null;
+
+  // Derive current view from URL — falls back to null until membership loads
+  const urlView = viewFromPath(pathname);
 
   useEffect(() => {
     if (!user) return;
@@ -49,13 +59,19 @@ export function CBODashboard() {
           const role = (ctx.role as 'owner' | 'admin' | 'member' | null) ?? null;
           setOrgId(ctx.orgId);
           setMembershipRole(role);
-          if (role === 'member') setCurrentView('assigned');
           setMembershipLoaded(true);
+
+          // Redirect to default view when landing on bare /cbo
+          const view = viewFromPath(pathname);
+          if (!view) {
+            navigate(role === 'member' ? '/cbo/assigned' : '/cbo/overview', { replace: true });
+          } else if (role === 'member' && !STAFF_VIEWS.includes(view)) {
+            navigate('/cbo/assigned', { replace: true });
+          }
           return;
         }
 
-        // No org found — attempt to bootstrap from user metadata (handles first
-        // login after email verification and accounts created before the fix).
+        // No org found — attempt to bootstrap from user metadata
         if (!bootstrapAttempted.current && user.organization?.trim()) {
           bootstrapAttempted.current = true;
           try {
@@ -65,19 +81,20 @@ export function CBODashboard() {
               borough: 'Manhattan',
               email: user.email,
             });
-            // Re-fetch membership after creation
             const retryCtx = await requestsApi.getMyOrgMembership();
             if (!active) return;
             if (retryCtx.orgId) {
               const role = (retryCtx.role as 'owner' | 'admin' | 'member' | null) ?? null;
               setOrgId(retryCtx.orgId);
               setMembershipRole(role);
-              if (role === 'member') setCurrentView('assigned');
               setMembershipLoaded(true);
+              if (!viewFromPath(pathname)) {
+                navigate(role === 'member' ? '/cbo/assigned' : '/cbo/overview', { replace: true });
+              }
               return;
             }
           } catch {
-            // Fall through to show the error state below
+            // Fall through to show error state
           }
         }
 
@@ -101,6 +118,7 @@ export function CBODashboard() {
 
     void loadRole();
     return () => { active = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleLogout = async () => {
@@ -181,36 +199,40 @@ export function CBODashboard() {
     );
   }
 
+  // Determine effective view from URL, gated by role
+  const effectiveView: CBOView = (() => {
+    const v = urlView;
+    if (!v) return isRestrictedRole ? 'assigned' : 'overview';
+    if (isRestrictedRole && !STAFF_VIEWS.includes(v)) return 'assigned';
+    return v;
+  })();
+
   const handleViewChange = (nextView: CBOView) => {
-    if (!isRestrictedRole) {
-      setCurrentView(nextView);
-      return;
-    }
-    const allowedForStaff: CBOView[] = ['assigned', 'messages', 'help', 'account'];
-    setCurrentView(allowedForStaff.includes(nextView) ? nextView : 'assigned');
+    const allowed = isRestrictedRole
+      ? (STAFF_VIEWS.includes(nextView) ? nextView : 'assigned')
+      : nextView;
+    navigate(`/cbo/${allowed}`);
+    setSidebarOpen(false);
   };
 
   const renderView = () => {
-    if (isRestrictedRole && !['assigned', 'messages', 'help', 'account'].includes(currentView)) {
-      return <ClientsView staffMode />;
-    }
-    switch (currentView) {
-      case 'overview': return <CBOOverview />;
-      case 'clients': return <ClientsView />;
-      case 'assigned': return <ClientsView staffMode />;
-      case 'services': return <ServicesView />;
-      case 'messages': return <MessagesView />;
-      case 'settings': return <SettingsView />;
-      case 'help': return <HelpSupportView />;
-      case 'account': return <AccountSettingsView hideBorough />;
-      default: return <CBOOverview />;
+    switch (effectiveView) {
+      case 'overview':  return <CBOOverview />;
+      case 'clients':   return <ClientsView />;
+      case 'assigned':  return <ClientsView staffMode />;
+      case 'services':  return <ServicesView />;
+      case 'messages':  return <MessagesView />;
+      case 'settings':  return <SettingsView />;
+      case 'help':      return <HelpSupportView />;
+      case 'account':   return <AccountSettingsView hideBorough />;
+      default:          return <CBOOverview />;
     }
   };
 
   return (
     <div className="h-screen bg-white flex font-sans overflow-hidden">
       <CBOSidebar
-        currentView={currentView}
+        currentView={effectiveView}
         onViewChange={handleViewChange}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
