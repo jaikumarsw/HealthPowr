@@ -4,34 +4,86 @@
 A community services platform connecting NYC residents with local CBO (Community Based Organization) providers. Built with React + Vite + TypeScript, using Supabase as the backend.
 
 ## Architecture
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Framer Motion
-- **Backend**: Supabase (PostgreSQL + Auth + Edge Functions + Realtime)
-- **Routing**: React Router v7
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL + Auth + Storage + Edge Functions)
+- **Routing**: React Router v7 — URL-based sub-routing inside each portal (`/cbo/messages`, `/client/services`, etc.)
 - **State**: React Context (AuthContext, NotificationContext)
 - **Maps**: Leaflet / React Leaflet
 
 ## User Roles
 | Role | Portal | Notes |
 |------|--------|-------|
-| `community_member` | `/client` | Residents submitting service requests |
-| `organization` | `/cbo` | CBO directors & staff managing requests |
-| `admin` | `/admin` | Platform admin, protected by passkey |
+| `community_member` | `/client/*` | Residents submitting service requests |
+| `organization` | `/cbo/*` | CBO directors & staff managing requests |
+| `admin` | `/admin/*` | Platform admin, protected by passkey |
 
-## Key Files
-- `src/contexts/AuthContext.tsx` — auth state, signup, org bootstrap on email verification
-- `src/lib/organzationsApi.ts` — org CRUD (note: typo in filename is intentional legacy)
-- `src/api/requests.ts` — service request CRUD, staff assignment, notes, status history
-- `src/api/staff.ts` — staff account creation via Supabase Edge Function
-- `src/components/auth/LoginModal.tsx` — sign in / sign up modal with role toggle
-- `src/pages/StaffAuthPage.tsx` — staff login via username + org
+## Project Structure
+```
+src/
+  App.tsx                        # Root router — imports components directly
+  api/                           # Supabase data access layer
+    auth.ts                      # Auth helpers (fetchProfile, upsertProfile, etc.)
+    forum.ts                     # Community forum threads/comments
+    messages.ts                  # Messaging between users
+    organizations.ts             # Org CRUD (admin use)
+    requests.ts                  # Service request CRUD, assignments, notes
+    staff.ts                     # Staff account creation via Edge Function
+  components/
+    LandingPage.tsx              # Public landing page
+    admin/                       # Admin portal views
+    auth/LoginModal.tsx          # Sign in / sign up modal
+    cbo/                         # CBO/Staff portal views
+    client/                      # Client portal views
+    shared/AccountSettingsView.tsx  # Shared account settings (all user types)
+    ui/Drawer.tsx                # Reusable drawer/panel component
+  contexts/
+    AuthContext.tsx              # Auth state, session, refreshProfile
+    NotificationContext.tsx      # In-app notifications
+  hooks/
+    useAdminOrganizations.ts     # Admin org list with filtering
+    useGeolocation.ts            # Browser geolocation
+    useOrganizations.ts          # CBO org data
+    useServices.ts               # Service listings
+  lib/
+    organzationsApi.ts           # Org setup/CRUD (legacy filename, do not rename)
+    orgSlug.ts                   # Org slug generation utilities
+    siteUrl.ts                   # Dynamic site URL helper
+    supabase.ts                  # Supabase client singleton
+    types.ts                     # Shared TypeScript types
+    utils.ts                     # cn() utility (clsx + tailwind-merge)
+  pages/                         # Only real full-page routes (no thin wrappers)
+    AdminLoginPage.tsx
+    AdminPasskeyPage.tsx
+    StaffAuthPage.tsx
+  routes/RequireAuth.tsx         # Role-gated route wrapper
+  types/user.ts                  # User / UserRole types
+```
+
+## Portal URL Routes
+| Portal | URL | View |
+|--------|-----|------|
+| CBO | `/cbo/overview` `/cbo/clients` `/cbo/services` `/cbo/messages` `/cbo/settings` `/cbo/account` `/cbo/help` | — |
+| Staff (member role) | `/cbo/assigned` `/cbo/messages` `/cbo/account` `/cbo/help` | restricted subset |
+| Client | `/client/services` `/client/map` `/client/applications` `/client/messages` `/client/profile` `/client/community` `/client/account` | — |
+| Admin | `/admin/requests` `/admin/orgs` `/admin/reports` | — |
+
+## Key Implementation Notes
+- `src/lib/organzationsApi.ts` has a typo in the filename — intentional legacy, **do not rename**
+- `VITE_SITE_URL` is intentionally NOT set — `siteUrl.ts` uses `window.location.origin` dynamically
+- Staff accounts use login email (`username@org-slug.healthpowr.app`) as Supabase auth email
+- `maybeSingle()` pattern: any query on `organization_members` filtered only by `profile_id` must use `.order("joined_at").limit(1)` first
 
 ## CBO Staff & Team Management
-- **Multiple staff per org**: Yes — via `organization_members` table. Each staff member is a separate Supabase auth user.
+- **Multiple staff per org**: via `organization_members` table; each staff member is a separate Supabase auth user
 - **Staff roles**: `owner` (director), `admin`, `member` (staff)
-- **Assign requests to staff**: Yes — `requestsApi.assignToStaff()`. Only owners/admins can assign.
-- **Staff view**: Staff (`member` role) only see requests assigned to them.
-- **Internal case notes**: Yes — stored in `request_notes` with `is_internal: true`, visible to all org members.
-- **Team activity feed**: Yes — `requestsApi.getOrgTeamActivity()` merges notes + status history into a unified timeline.
+- **Staff view restriction**: `member` role only sees requests assigned to them (`/cbo/assigned`)
+- **Case notes**: stored in `request_notes` with `is_internal: true`
+
+## Account Settings & Avatar Upload
+- **Component**: `src/components/shared/AccountSettingsView.tsx` — shared for all user types
+- **Avatar storage**: Supabase Storage `avatars` bucket (public, 2MB limit); path `avatars/{user_id}/avatar.{ext}`
+- **Profile sync**: `AuthContext.refreshProfile()` re-fetches profile after any save so headers/avatars update immediately
+- **Borough field**: hidden for org/staff users via `hideBorough` prop
 
 ## Environment Variables
 | Variable | Scope | Purpose |
@@ -41,29 +93,11 @@ A community services platform connecting NYC residents with local CBO (Community
 | `VITE_ADMIN_PASSKEY` | secret | Admin portal gate |
 | `SUPABASE_SERVICE_ROLE_KEY` | secret | Service role key for Edge Functions |
 
-`VITE_SITE_URL` is intentionally NOT set — the app uses `window.location.origin` dynamically so email verification links always redirect to the correct host.
+## Supabase Edge Functions
+- `create-staff-account` — creates auth user + profile + org membership; returns temp password to owner
 
 ## Development
 ```bash
-npm run dev       # start dev server on port 5000
-npm run build     # production build
+npm run dev    # start dev server on port 5000
+npm run build  # production build
 ```
-
-## Known CBO Org Verification Flow
-1. Director signs up via Provider Portal → Supabase sends verification email
-2. Director clicks link → lands on `/`, `onAuthStateChange` fires with session
-3. `maybeBootstrapOrganization` creates the org row + membership in DB
-4. LandingPage auto-redirects authenticated org users to `/cbo`
-5. Director sees dashboard; org status is `pending` until admin approves
-
-## Account Settings & Avatar Upload
-- **Shared component**: `src/components/shared/AccountSettingsView.tsx` — works for all user types (client, CBO, staff)
-- **Avatar upload**: Uses Supabase Storage `avatars` bucket (public, 2MB limit). Files stored at `avatars/{user_id}/avatar.{ext}`. URL saved to `profiles.avatar_url`.
-- **Storage RLS policies**: Authenticated users can upload/update/delete their own folder (`{user_id}/`); public SELECT for all.
-- **Profile editing**: Full name, phone, borough (clients only, hidden via `hideBorough` prop for org/staff).
-- **Password change**: Re-verifies current password via `signInWithPassword` before calling `updateUser`.
-- **Wired into**: CBODashboard (`account` view), ClientDashboard (`account` view). Both header dropdowns and sidebars link to it.
-- **Staff sidebar**: Staff members (`member` role) now see Account Settings in their footer nav.
-
-## Supabase Edge Functions
-- `create-staff-account`: Creates a Supabase auth user for a staff member, adds them to `organization_members`, sends invite email

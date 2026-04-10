@@ -1,11 +1,10 @@
-// (service worker removed)
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import LandingPageRoute from "./pages/LandingPage";
-import ClientDashboardPage from "./pages/ClientDashboardPage";
-import CBODashboardPage from "./pages/CBODashboardPage";
-import AdminDashboardPage from "./pages/AdminDashboardPage";
-import AdminPasskeyPage from "../src/pages/AdminPasskeyPage";
-import AdminLoginPage from "../src/pages/AdminLoginPage";
+import { LandingPage } from "./components/LandingPage";
+import { ClientDashboard } from "./components/client/ClientDashboard";
+import { CBODashboard } from "./components/cbo/CBODashboard";
+import { AdminDashboard } from "./components/admin/AdminDashboard";
+import AdminPasskeyPage from "./pages/AdminPasskeyPage";
+import AdminLoginPage from "./pages/AdminLoginPage";
 import StaffAuthPage from "./pages/StaffAuthPage";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
@@ -15,15 +14,7 @@ function AppRoutes() {
   const { isLoading } = useAuth();
   if (isLoading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100vh",
-          background: "#F9FAFB",
-        }}
-      >
+      <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="animate-spin rounded-full h-9 w-9 border-[3px] border-gray-200 border-t-teal-600" />
       </div>
     );
@@ -31,7 +22,7 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<LandingPageRoute />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/admin-passkey" element={<AdminPasskeyPage />} />
       <Route path="/admin-login" element={<AdminLoginPage />} />
       <Route path="/staff-login" element={<StaffAuthPage />} />
@@ -39,7 +30,7 @@ function AppRoutes() {
         path="/client/*"
         element={
           <RequireAuth role="community_member">
-            <ClientDashboardPage />
+            <ClientDashboard />
           </RequireAuth>
         }
       />
@@ -47,7 +38,7 @@ function AppRoutes() {
         path="/cbo/*"
         element={
           <RequireAuth role="organization">
-            <CBODashboardPage />
+            <CBODashboard />
           </RequireAuth>
         }
       />
@@ -55,7 +46,7 @@ function AppRoutes() {
         path="/admin/*"
         element={
           <RequireAuth role="admin">
-            <AdminDashboardPage />
+            <AdminDashboard />
           </RequireAuth>
         }
       />
