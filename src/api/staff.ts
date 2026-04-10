@@ -52,6 +52,11 @@ export const staffApi = {
         status: res.status,
         body: maybeJson ?? text,
       });
+      if (res.status === 404) {
+        throw new Error(
+          "Staff account creation is not available yet — the server function has not been deployed. Contact your system administrator."
+        );
+      }
       const msg =
         (maybeJson && (maybeJson.error || maybeJson.message)) ||
         `Edge Function failed (${res.status}).`;
