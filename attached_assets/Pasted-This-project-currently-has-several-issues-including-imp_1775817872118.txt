@@ -1,0 +1,49 @@
+This project currently has several issues, including improper validation and incomplete API integration, which need to be addressed before moving forward with any new development.
+
+1. Critical Issue – Organization (CBO) Account Creation & Verification
+
+There is a major issue in the organization (CBO) signup and verification flow:
+
+When a user creates an organization account, the account is created and a verification email is sent.
+However, when the user clicks the verification link, the system shows an error stating that no organization exists for that account.
+
+This indicates a problem in either the account creation process, data persistence, or the verification API.
+
+Expected behavior:
+
+The organization should be properly created and stored.
+The verification link should successfully validate the account without errors.
+
+This issue must be fixed as a top priority.
+
+2. Full Project Review
+
+After resolving the above issue:
+
+Perform a thorough review of the entire project.
+Fix all issues related to validation, API integration, and overall functionality.
+Ensure consistent and reliable behavior across all flows.
+3. CBO Staff & Team Management Flow (Client Requirement)
+
+Before building any new features, the client needs a clear understanding of the current system.
+
+Please record a Loom video walkthrough demonstrating the following flow:
+
+A director logs into the CBO dashboard
+The director views all incoming service requests
+The director assigns a specific request to a staff member
+A staff member logs in and sees their assigned request
+The staff member writes an internal case note
+The director logs back in and reviews that note and tracks the staff member’s actions
+Show the full case history and audit trail for a single request
+
+The goal is to clearly demonstrate how the current system behaves end-to-end.
+
+4. Required Confirmations
+
+In your response, also confirm the following:
+
+Can a CBO have multiple staff logins under one organization account?
+Can the organization admin assign requests to specific staff members?
+Are internal case notes visible to all staff within the same organization?
+Does the admin have access to a view that shows all team activity?
