@@ -259,6 +259,8 @@ export const requestsApi = {
       .from("organization_members")
       .select("organization_id")
       .eq("profile_id", user.id)
+      .order("joined_at", { ascending: true })
+      .limit(1)
       .maybeSingle();
 
     const orgId = membership?.organization_id;

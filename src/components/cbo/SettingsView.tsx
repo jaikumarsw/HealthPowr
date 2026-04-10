@@ -60,6 +60,8 @@ export function SettingsView() {
           .from('organization_members')
           .select('organization_id, role')
           .eq('profile_id', auth.user.id)
+          .order('joined_at', { ascending: true })
+          .limit(1)
           .maybeSingle();
         if (!membership?.organization_id) return;
         setOrgId(membership.organization_id);
