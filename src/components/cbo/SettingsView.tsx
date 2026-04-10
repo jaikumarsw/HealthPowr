@@ -55,7 +55,7 @@ export function SettingsView() {
   });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [creatingStaff, setCreatingStaff] = useState(false);
-  const [createdCreds, setCreatedCreds] = useState<null | { login_email: string; invited_email: string }>(null);
+  const [createdCreds, setCreatedCreds] = useState<null | { login_email: string; personal_email: string; temp_password: string }>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
   const canEdit = myMembershipRole === 'owner' || myMembershipRole === 'admin';
@@ -469,25 +469,28 @@ export function SettingsView() {
               {teamMessage && <Alert type={teamMessage.type} message={teamMessage.text} />}
 
               {createdCreds && (
-                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+                <div className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-3">
                   <div className="flex items-center gap-2 text-green-700">
                     <CheckCircle className="w-4 h-4" />
-                    <p className="text-sm font-semibold">Invite sent successfully</p>
+                    <p className="text-sm font-semibold">Staff account created successfully</p>
                   </div>
-                  <p className="text-xs text-gray-500">
-                    The staff member will receive an invite at their personal email. Once they set their password,
-                    they can sign in using the Staff Portal with the login email below.
+                  <p className="text-xs text-green-700 leading-relaxed">
+                    Share these credentials with the staff member directly. They can sign in immediately at the Staff Portal
+                    and should change their password after first login.
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <div className="rounded-lg border border-gray-200 bg-white p-3">
-                      <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">Staff login email</p>
-                      <p className="text-sm font-mono text-gray-900">{createdCreds.login_email}</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="rounded-lg border border-green-200 bg-white p-3">
+                      <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">Staff Portal Login Email</p>
+                      <p className="text-sm font-mono font-bold text-gray-900 select-all">{createdCreds.login_email}</p>
                     </div>
-                    <div className="rounded-lg border border-gray-200 bg-white p-3">
-                      <p className="text-[10px] text-gray-400 uppercase font-semibold mb-1">Invite sent to</p>
-                      <p className="text-sm font-mono text-gray-900">{createdCreds.invited_email}</p>
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                      <p className="text-[10px] text-amber-700 uppercase font-semibold mb-1">Temporary Password — share securely</p>
+                      <p className="text-sm font-mono font-bold text-amber-900 select-all tracking-wider">{createdCreds.temp_password}</p>
                     </div>
                   </div>
+                  <p className="text-[11px] text-gray-400">
+                    Their personal email ({createdCreds.personal_email}) is linked to the account for password recovery.
+                  </p>
                 </div>
               )}
             </>

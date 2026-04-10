@@ -8,7 +8,7 @@ export const staffApi = {
     personalEmail: string;
     fullName?: string;
     membershipRole: "admin" | "member";
-  }): Promise<{ login_email: string; invited_email: string }> {
+  }): Promise<{ login_email: string; personal_email: string; temp_password: string }> {
     // Force a fresh token — getSession() can return a stale cached token.
     const { data: refreshed, error: refreshErr } = await supabase.auth.refreshSession();
     if (refreshErr || !refreshed.session) {
@@ -48,7 +48,7 @@ export const staffApi = {
       throw new Error(msg);
     }
 
-    const data = body as { login_email: string; invited_email: string } | null;
+    const data = body as { login_email: string; personal_email: string; temp_password: string } | null;
     if (!data?.login_email) {
       throw new Error("Unexpected response from server. Please try again.");
     }

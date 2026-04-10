@@ -1,6 +1,6 @@
 // Supabase Edge Function: create-staff-account
-// Owner/admin creates a staff user and sends a Supabase invite email
-// (built-in) to the staff member's PERSONAL email address.
+// Owner/admin creates a staff user directly (no invite email required).
+// A temporary password is generated and returned to the owner to share securely.
 //
 // Required secrets (set in Supabase function env, NOT in frontend):
 // - SUPABASE_URL
@@ -30,6 +30,24 @@ function isValidEmail(email: string) {
 
 function normalizeUsername(username: string) {
   return username.trim().toLowerCase();
+}
+
+/** Generates a secure random temporary password: 12 chars, mixed case + digits + symbol. */
+function generateTempPassword(): string {
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghjkmnpqrstuvwxyz";
+  const digits = "23456789";
+  const symbols = "@#!$";
+  const all = upper + lower + digits + symbols;
+  const arr = new Uint8Array(12);
+  crypto.getRandomValues(arr);
+  let pass = upper[arr[0] % upper.length]
+    + lower[arr[1] % lower.length]
+    + digits[arr[2] % digits.length]
+    + symbols[arr[3] % symbols.length];
+  for (let i = 4; i < 12; i++) pass += all[arr[i] % all.length];
+  // shuffle
+  return pass.split("").sort(() => 0.5 - Math.random()).join("");
 }
 
 function json(status: number, body: unknown) {
@@ -67,8 +85,6 @@ Deno.serve(async (req) => {
   const jwt = authHeader.replace(/^Bearer\s+/i, "").trim();
   if (!jwt) return json(401, { error: "Missing bearer token" });
 
-  // IMPORTANT: do NOT forward the caller JWT as the client's Authorization header.
-  // If we do, admin operations (inviteUserByEmail) will run as the caller instead of service role.
   const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
 
   const payload = await req.json().catch(() => null) as null | {
@@ -95,15 +111,14 @@ Deno.serve(async (req) => {
   }
   if (!username || username.length < 3 || username.length > 24 || !/^[a-z0-9._-]+$/.test(username)) {
     return json(400, {
-      error:
-        "Invalid username. Use 3-24 chars: a-z, 0-9, dot, underscore, dash.",
+      error: "Invalid username. Use 3-24 chars: a-z, 0-9, dot, underscore, dash.",
     });
   }
   if (payload.membershipRole !== "admin" && payload.membershipRole !== "member") {
     return json(400, { error: "Invalid membershipRole." });
   }
 
-  // Verify caller
+  // Verify caller is authenticated and is owner/admin of the org
   const { data: caller, error: callerErr } = await admin.auth.getUser(jwt);
   if (callerErr || !caller?.user) return json(401, { error: "Not authenticated" });
 
@@ -119,49 +134,43 @@ Deno.serve(async (req) => {
     return json(403, { error: "Only org owner/admin can create staff accounts" });
   }
 
-  // Ensure username unique within org
-  const { data: existingU, error: existingUErr } = await admin
+  // Ensure username is unique within the org
+  const { data: existingU } = await admin
     .from("organization_members")
     .select("profile_id")
     .eq("organization_id", payload.organizationId)
     .eq("username", username)
     .maybeSingle();
-  if (existingUErr) return json(500, { error: existingUErr.message });
   if (existingU) {
     return json(400, { error: "Username already exists in this organization." });
   }
 
   const loginEmail = toStaffLoginEmail(username, orgName);
+  const tempPassword = generateTempPassword();
 
-  // Create auth user + send Supabase invite email to PERSONAL email.
-  // Staff will set their password via invite link.
-  const { data: invited, error: inviteErr } = await admin.auth.admin.inviteUserByEmail(
-    personalEmail,
-    {
-      data: {
-        full_name: payload.fullName ?? undefined,
-        role: "organization",
-        created_by_org: payload.organizationId,
-        staff_username: username,
-        staff_login_email: loginEmail,
-      },
+  // Create the user directly (no invite email — avoids rate limits entirely).
+  // email_confirm: true so the account is immediately active.
+  const { data: created, error: createErr } = await admin.auth.admin.createUser({
+    email: personalEmail,
+    password: tempPassword,
+    email_confirm: true,
+    user_metadata: {
+      full_name: payload.fullName ?? undefined,
+      role: "organization",
+      created_by_org: payload.organizationId,
+      staff_username: username,
+      staff_login_email: loginEmail,
     },
-  );
-  if (inviteErr || !invited?.user) {
-    const msg = inviteErr?.message ?? "Failed to invite user";
-    // Common when signups/invites are disabled in Auth settings.
-    if (msg.toLowerCase().includes("user not allowed")) {
-      return json(400, {
-        error:
-          "Supabase Auth blocked inviting users (User not allowed). Enable Email provider and allow signups/invites in Auth settings.",
-      });
-    }
+  });
+
+  if (createErr || !created?.user) {
+    const msg = createErr?.message ?? "Failed to create user";
     return json(400, { error: msg });
   }
 
-  const staffId = invited.user.id;
+  const staffId = created.user.id;
 
-  // Upsert profile + membership
+  // Upsert profile
   const { error: profileErr } = await admin.from("profiles").upsert({
     id: staffId,
     email: personalEmail,
@@ -170,6 +179,7 @@ Deno.serve(async (req) => {
   });
   if (profileErr) return json(500, { error: profileErr.message });
 
+  // Insert organization membership
   const { error: memberErr } = await admin.from("organization_members").insert({
     organization_id: payload.organizationId,
     profile_id: staffId,
@@ -180,7 +190,7 @@ Deno.serve(async (req) => {
 
   return json(200, {
     login_email: loginEmail,
-    invited_email: personalEmail,
+    personal_email: personalEmail,
+    temp_password: tempPassword,
   });
 });
-
