@@ -1,5 +1,5 @@
 import { 
-  Users, Settings, MessageSquare, Home, HelpCircle, X
+  Users, Settings, MessageSquare, Home, HelpCircle, X, UserCog
 } from 'lucide-react';
 import { CBOView } from './CBODashboard';
 
@@ -32,9 +32,13 @@ export function CBOSidebar({
       ];
 
   const footerItems = isStaffMember
-    ? [{ id: 'help' as CBOView, icon: HelpCircle, label: 'Help & Support' }]
+    ? [
+        { id: 'account' as CBOView, icon: UserCog, label: 'Account Settings' },
+        { id: 'help' as CBOView, icon: HelpCircle, label: 'Help & Support' },
+      ]
     : [
-        { id: 'settings' as CBOView, icon: Settings, label: 'Settings' },
+        { id: 'account' as CBOView, icon: UserCog, label: 'Account Settings' },
+        { id: 'settings' as CBOView, icon: Settings, label: 'Org Settings' },
         { id: 'help' as CBOView, icon: HelpCircle, label: 'Help & Support' },
       ];
 
@@ -75,7 +79,7 @@ export function CBOSidebar({
 
         <div className="pt-5 pb-2 px-4">
           <h2 className="text-[11px] font-semibold text-gray-400 tracking-[0.08em] uppercase">
-            CBO Dashboard
+            {isStaffMember ? 'Staff Portal' : 'CBO Dashboard'}
           </h2>
         </div>
         

@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { Bell, Menu, Search, X, User as UserIcon, LogOut } from 'lucide-react';
+import { Bell, Menu, Search, X, UserCog, LogOut, User as UserIcon } from 'lucide-react';
 import type { User } from '../../types/user';
 
 interface ClientHeaderProps {
   user: User;
   onLogout: () => void;
   onMenuClick: () => void;
+  onAccountSettings?: () => void;
 }
 
-export function ClientHeader({ user, onLogout, onMenuClick }: ClientHeaderProps) {
+export function ClientHeader({ user, onLogout, onMenuClick, onAccountSettings }: ClientHeaderProps) {
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
@@ -143,13 +144,23 @@ export function ClientHeader({ user, onLogout, onMenuClick }: ClientHeaderProps)
                   </div>
                 </div>
                 <div className="p-2">
-                  <button className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-[14px] text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors min-h-[44px]">
+                  <button
+                    onClick={() => { onAccountSettings?.(); setShowProfile(false); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-[14px] text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors min-h-[44px]"
+                  >
+                    <UserCog className="w-[16px] h-[16px] text-gray-400" />
+                    <span>Account Settings</span>
+                  </button>
+                  <button
+                    onClick={() => { setShowProfile(false); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-[14px] text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors min-h-[44px]"
+                  >
                     <UserIcon className="w-[16px] h-[16px] text-gray-400" />
                     <span>My Profile</span>
                   </button>
                   <div className="h-px bg-gray-100 my-1"></div>
                   <button
-                    onClick={onLogout}
+                    onClick={() => { onLogout(); setShowProfile(false); }}
                     className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-[14px] font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-[44px]"
                   >
                     <LogOut className="w-[16px] h-[16px]" />

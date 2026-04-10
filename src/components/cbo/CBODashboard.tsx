@@ -7,6 +7,7 @@ import { ServicesView } from './ServicesView';
 import { MessagesView } from './MessagesView';
 import { SettingsView } from './SettingsView';
 import { HelpSupportView } from './HelpSupportView';
+import { AccountSettingsView } from '../shared/AccountSettingsView';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { requestsApi } from '../../api/requests';
@@ -20,7 +21,8 @@ export type CBOView =
   | 'services'
   | 'messages'
   | 'settings'
-  | 'help';
+  | 'help'
+  | 'account';
 
 export function CBODashboard() {
   const { user, signOut, isLoading } = useAuth();
@@ -184,12 +186,12 @@ export function CBODashboard() {
       setCurrentView(nextView);
       return;
     }
-    const allowedForStaff: CBOView[] = ['assigned', 'messages', 'help'];
+    const allowedForStaff: CBOView[] = ['assigned', 'messages', 'help', 'account'];
     setCurrentView(allowedForStaff.includes(nextView) ? nextView : 'assigned');
   };
 
   const renderView = () => {
-    if (isRestrictedRole && !['assigned', 'messages', 'help'].includes(currentView)) {
+    if (isRestrictedRole && !['assigned', 'messages', 'help', 'account'].includes(currentView)) {
       return <ClientsView staffMode />;
     }
     switch (currentView) {
@@ -200,6 +202,7 @@ export function CBODashboard() {
       case 'messages': return <MessagesView />;
       case 'settings': return <SettingsView />;
       case 'help': return <HelpSupportView />;
+      case 'account': return <AccountSettingsView hideBorough />;
       default: return <CBOOverview />;
     }
   };
@@ -219,6 +222,7 @@ export function CBODashboard() {
           onLogout={handleLogout}
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
           membershipRole={membershipRole}
+          onAccountSettings={() => handleViewChange('account')}
         />
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8">
           <div className="max-w-[1200px] mx-auto w-full">

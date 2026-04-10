@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, Menu, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { Bell, Menu, LogOut, UserCog, ChevronDown } from 'lucide-react';
 import type { User } from '../../types/user';
 
 interface CBOHeaderProps {
@@ -7,15 +7,16 @@ interface CBOHeaderProps {
   onLogout: () => void;
   onMenuClick: () => void;
   membershipRole?: 'owner' | 'admin' | 'member' | null;
+  onAccountSettings?: () => void;
 }
 
-export function CBOHeader({ user, onLogout, onMenuClick, membershipRole }: CBOHeaderProps) {
+export function CBOHeader({ user, onLogout, onMenuClick, membershipRole, onAccountSettings }: CBOHeaderProps) {
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
   const notifications: Array<{ id: number; text: string; time: string }> = [];
 
-  const initials = user.name.split(' ').map(n => n[0]).join('').substring(0,2);
+  const initials = user.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-30 h-14 md:h-16 flex items-center flex-shrink-0">
@@ -47,7 +48,7 @@ export function CBOHeader({ user, onLogout, onMenuClick, membershipRole }: CBOHe
           {/* Notification bell */}
           <div className="relative">
             <button 
-              onClick={() => setShowNotifications(!showNotifications)}
+              onClick={() => { setShowNotifications(!showNotifications); setShowProfile(false); }}
               className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors relative text-gray-500"
             >
               <Bell className="w-5 h-5" />
@@ -78,7 +79,7 @@ export function CBOHeader({ user, onLogout, onMenuClick, membershipRole }: CBOHe
           {/* Avatar */}
           <div className="relative">
             <button 
-              onClick={() => setShowProfile(!showProfile)}
+              onClick={() => { setShowProfile(!showProfile); setShowNotifications(false); }}
               className="flex items-center gap-2 p-1 rounded-xl hover:bg-gray-50 transition-colors text-left min-h-[44px]"
             >
               {user.avatar ? (
@@ -105,16 +106,19 @@ export function CBOHeader({ user, onLogout, onMenuClick, membershipRole }: CBOHe
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.08)] border border-gray-100 z-50 overflow-hidden">
                 <div className="p-4 border-b border-gray-100 bg-gray-50/50">
                   <p className="font-semibold text-gray-900 text-sm">{user.name}</p>
-                  <p className="text-[13px] text-gray-500 mt-0.5">{user.email}</p>
+                  <p className="text-[13px] text-gray-500 mt-0.5 truncate">{user.email}</p>
                 </div>
                 <div className="p-2">
-                  <button className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[14px] font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors min-h-[44px]">
-                    <Settings className="w-[18px] h-[18px]" />
+                  <button
+                    onClick={() => { onAccountSettings?.(); setShowProfile(false); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[14px] font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors min-h-[44px]"
+                  >
+                    <UserCog className="w-[18px] h-[18px]" />
                     <span>Account Settings</span>
                   </button>
                   <div className="h-px bg-gray-100 my-1"></div>
                   <button 
-                    onClick={onLogout}
+                    onClick={() => { onLogout(); setShowProfile(false); }}
                     className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-[14px] font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-[44px]"
                   >
                     <LogOut className="w-[18px] h-[18px]" />

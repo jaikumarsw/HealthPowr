@@ -8,10 +8,11 @@ import { MessagesView } from './MessagesView';
 import { ProfileView } from './ProfileView';
 import { CommunityView } from './CommunityView';
 import { ApplicationForm } from './ApplicationForm';
+import { AccountSettingsView } from '../shared/AccountSettingsView';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-export type ClientView = 'services' | 'map' | 'applications' | 'messages' | 'profile' | 'community' | 'application-form';
+export type ClientView = 'services' | 'map' | 'applications' | 'messages' | 'profile' | 'community' | 'application-form' | 'account';
 
 export function ClientDashboard() {
   const { user, signOut, isLoading } = useAuth();
@@ -48,6 +49,8 @@ export function ClientDashboard() {
         return <ProfileView />;
       case 'community':
         return <CommunityView />;
+      case 'account':
+        return <AccountSettingsView />;
       case 'application-form':
         return (
           <ApplicationForm
@@ -79,6 +82,7 @@ export function ClientDashboard() {
           user={user} 
           onLogout={handleLogout}
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          onAccountSettings={() => setCurrentView('account')}
         />
         
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8 min-w-0">

@@ -56,5 +56,14 @@ npm run build     # production build
 4. LandingPage auto-redirects authenticated org users to `/cbo`
 5. Director sees dashboard; org status is `pending` until admin approves
 
+## Account Settings & Avatar Upload
+- **Shared component**: `src/components/shared/AccountSettingsView.tsx` — works for all user types (client, CBO, staff)
+- **Avatar upload**: Uses Supabase Storage `avatars` bucket (public, 2MB limit). Files stored at `avatars/{user_id}/avatar.{ext}`. URL saved to `profiles.avatar_url`.
+- **Storage RLS policies**: Authenticated users can upload/update/delete their own folder (`{user_id}/`); public SELECT for all.
+- **Profile editing**: Full name, phone, borough (clients only, hidden via `hideBorough` prop for org/staff).
+- **Password change**: Re-verifies current password via `signInWithPassword` before calling `updateUser`.
+- **Wired into**: CBODashboard (`account` view), ClientDashboard (`account` view). Both header dropdowns and sidebars link to it.
+- **Staff sidebar**: Staff members (`member` role) now see Account Settings in their footer nav.
+
 ## Supabase Edge Functions
 - `create-staff-account`: Creates a Supabase auth user for a staff member, adds them to `organization_members`, sends invite email

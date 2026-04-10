@@ -1,5 +1,5 @@
 import {
-  Search, FileText, MessageSquare, User, Users, X, Map, AlertTriangle, Phone
+  Search, FileText, MessageSquare, User, Users, X, Map, AlertTriangle, Phone, UserCog
 } from 'lucide-react';
 import { ClientView } from './ClientDashboard';
 
@@ -31,6 +31,7 @@ export function ClientSidebar({ currentView, onViewChange, isOpen, onClose }: Cl
       items: [
         { id: 'community', icon: Users, label: 'Community', badge: null },
         { id: 'profile', icon: User, label: 'Profile', badge: null },
+        { id: 'account', icon: UserCog, label: 'Account Settings', badge: null },
       ]
     }
   ];
