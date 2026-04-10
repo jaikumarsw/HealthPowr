@@ -10,14 +10,16 @@ export const requestsApi = {
     } = await supabase.auth.getUser();
     if (!user) return null;
 
-    const { data: membership, error } = await supabase
+    const { data, error } = await supabase
       .from("organization_members")
       .select("organization_id")
       .eq("profile_id", user.id)
+      .order("joined_at", { ascending: true })
+      .limit(1)
       .maybeSingle();
     if (error) throw error;
 
-    return membership?.organization_id ?? null;
+    return data?.organization_id ?? null;
   },
 
   async getMyOrgMembership(): Promise<{
@@ -30,16 +32,18 @@ export const requestsApi = {
     } = await supabase.auth.getUser();
     if (!user) return { orgId: null, role: null, userId: null };
 
-    const { data: membership, error } = await supabase
+    const { data, error } = await supabase
       .from("organization_members")
       .select("organization_id, role")
       .eq("profile_id", user.id)
+      .order("joined_at", { ascending: true })
+      .limit(1)
       .maybeSingle();
     if (error) throw error;
 
     return {
-      orgId: membership?.organization_id ?? null,
-      role: (membership?.role as OrgMembershipRole | undefined) ?? null,
+      orgId: data?.organization_id ?? null,
+      role: (data?.role as OrgMembershipRole | undefined) ?? null,
       userId: user.id,
     };
   },

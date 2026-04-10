@@ -215,11 +215,13 @@ export const organizationsApi = {
     // Prefer membership org first. This avoids a common mismatch where a user
     // "owns" an org record but is actively working under a different org as staff.
     // Owners are also added as members during setup, so this still returns the
-    // correct org for owners.
+    // correct org for owners. Use limit(1) to be safe if duplicates exist.
     const { data: membership } = await supabase
       .from("organization_members")
       .select("organization_id")
       .eq("profile_id", userId)
+      .order("joined_at", { ascending: true })
+      .limit(1)
       .maybeSingle();
 
     if (!membership?.organization_id) return null;
